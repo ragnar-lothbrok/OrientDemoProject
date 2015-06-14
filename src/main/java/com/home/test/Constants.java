@@ -23,5 +23,15 @@ public interface Constants {
     public static String ADUNIT = "adunit";
 
     public static String PUBLISHER = "Publisher";
+    
+    public static String PUBLISHER_AD_TAG = "PublisherAdTag";
+    
+    public static String PUBLISHER_SITE = "PublisherSite";
+    
+    public static String PUBLISHER_SITE_AD_TAG = "sitecontains";
+    
+    public static String PUBLISHER_PUBLISHER_SITE = "publishercontains";
+    
+    public static String PUBLISHER_GRAPH = "plocal:/home/pubmatic/Downloads/orientdb-community-2.0.10/databases/AccessControlBM";
 
 }

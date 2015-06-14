@@ -7,14 +7,14 @@ import java.util.Map;
 
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class UserTeamService {
 
     public void pushDataIntoDatabase() {
-        OrientGraphNoTx graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
-        List<Map<String, String>> userTeamMappingData = new FirstExample()
+        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        List<Map<String, Object>> userTeamMappingData = new FirstExample()
                 .getData(
                         "select ag.group_type_id,au.id as user_id,au.first_name as first_name,au.last_name as last_name,au.email as email from acl_group_user_mapping agcm inner join acl_group ag on ag.id=agcm.group_id inner join acl_user au on au.id=agcm.user_id",
                         null);
@@ -26,9 +26,9 @@ public class UserTeamService {
         VertexUtility.createVertex(graphNoTx,Constants.Team);
         resourceVertex = VertexUtility.getVertex(graphNoTx, Constants.PUBLISHER, "resource_name", Constants.Resource);
         if (userTeamMappingData != null) {
-            for (Map<String, String> userRecord : userTeamMappingData) {
-                roleVertex = VertexUtility.getVertex(graphNoTx, userRecord.get("group_type_id"), "role_id",Constants.ROLE);
-                userVertex = VertexUtility.getVertex(graphNoTx, userRecord.get("user_id"), "user_id",Constants.USER);
+            for (Map<String, Object> userRecord : userTeamMappingData) {
+                roleVertex = VertexUtility.getVertex(graphNoTx, (String)userRecord.get("group_type_id"), "role_id",Constants.ROLE);
+                userVertex = VertexUtility.getVertex(graphNoTx, (String)userRecord.get("user_id"), "user_id",Constants.USER);
                 teamVertex = VertexUtility.getVertex(graphNoTx, "team_"+userRecord.get("user_id"), "team_id",Constants.Team);
                 teamVertex = VertexUtility.getVertex(graphNoTx, "team_"+userRecord.get("user_id"), "team_id",Constants.Team);
                 if(userVertex == null){
@@ -43,7 +43,7 @@ public class UserTeamService {
                 }
                 
                 resourceVertex = VertexUtility.getVertex(graphNoTx, Constants.PUBLISHER, "resource_name", Constants.Resource);
-                if(resourceVertex != null && userVertex != null && !VertexUtility.isEdgePresent(graphNoTx, resourceVertex.getIdentity().toString(), userVertex.getIdentity().toString())){
+                if(resourceVertex != null && userVertex != null && !VertexUtility.isDirectedEdgePresent(graphNoTx, resourceVertex.getIdentity().toString(), userVertex.getIdentity().toString(),Constants.HAS)){
                     VertexUtility.createEdgeWithoutProperty(graphNoTx, Constants.HAS);
                     resourceVertex.addEdge(Constants.HAS, userVertex, null, null);
                 }
@@ -57,7 +57,7 @@ public class UserTeamService {
                     }
                 }
                 createEdge(Constants.HAS, graphNoTx);
-                if(teamVertex != null && roleVertex != null && !VertexUtility.isEdgePresent(graphNoTx, teamVertex.getIdentity().toString(), roleVertex.getIdentity().toString())){
+                if(teamVertex != null && roleVertex != null && !VertexUtility.isDirectedEdgePresent(graphNoTx, teamVertex.getIdentity().toString(), roleVertex.getIdentity().toString(),Constants.HAS)){
                     Calendar calendar = Calendar.getInstance();
                     Date startDate = calendar.getTime();
                     calendar.setTimeInMillis(startDate.getTime()+10000);
@@ -68,7 +68,7 @@ public class UserTeamService {
 
     }
     
-    public void createEdge(String edgeName,OrientGraphNoTx graph){
+    public void createEdge(String edgeName,OrientBaseGraph graph){
         if (graph.getEdgeType(edgeName) == null) {
             OrientEdgeType orientEdgeType = graph.createEdgeType(edgeName);
             orientEdgeType.createProperty("startDate", OType.DATETIME);

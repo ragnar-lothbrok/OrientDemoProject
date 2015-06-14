@@ -26,3 +26,5 @@ select featuregroup_id,out('FeatureGroupMapping').include('feature_id','feature_
 select team_id,out('has') from (traverse out('hasTeamChild') from (select * from  Team where team_id='team_25'))
 
 traverse out('has') from (traverse out('hasTeamChild') from (select * from  Team where team_id='team_25'))
+
+http://www.fromdev.com/2013/09/Gremlin-Example-Query-Snippets-Graph-DB.html

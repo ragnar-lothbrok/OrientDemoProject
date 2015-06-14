@@ -1,28 +1,40 @@
 package com.home.test;
 
 import com.orientechnologies.orient.core.intent.OIntentMassiveInsert;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
+import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
 
 public class OrientGraphServiceFactory {
 
 	public static OrientGraphServiceFactory orientGraphServiceFactory = null;
 
-	public static OrientGraphNoTx orientGraphNoTx = null;
+	public static OrientBaseGraph orientBaseGraph = null;
+	
+	private static String DB_PATH = "remote:localhost/AccessControl";
+	
+	public static boolean isTransactional = true;
 
 	private OrientGraphServiceFactory() {
 
 	}
 
-	public OrientGraphNoTx getGraph() {
-		return orientGraphNoTx;
+	public OrientBaseGraph getGraph() {
+		return orientBaseGraph;
 	}
 
 	public static void setGraph() {
-		OrientGraphNoTx graph = new OrientGraphNoTx(
-				"plocal:/home/pubmatic/Downloads/orientdb-community-2.0.10/databases/AccessControl");
-		graph.setRequireTransaction(false);
-		graph.getRawGraph().declareIntent(new OIntentMassiveInsert());
-		orientGraphNoTx = graph;
+	    if(isTransactional){
+	        OrientGraph graph = new OrientGraph(
+                    DB_PATH,"admin","admin");
+            orientBaseGraph = graph;
+	    }else{
+	        OrientGraphNoTx graph = new OrientGraphNoTx(
+	                DB_PATH,"admin","admin");
+	        graph.setRequireTransaction(false);
+	        graph.getRawGraph().declareIntent(new OIntentMassiveInsert());
+	        orientBaseGraph = graph;
+	    }
 	}
 
 	public static OrientGraphServiceFactory getInstance() {

@@ -12,12 +12,12 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.impls.orient.OrientEdgeType;
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class FeatureGroupMappingService {
     
-    private void createEdge(OrientGraphNoTx graph, String class_name) {
+    private void createEdge(OrientBaseGraph graph, String class_name) {
         // graph.dropEdgeType(class_name);
         if (graph.getEdgeType(class_name) == null) {
             OrientEdgeType orientEdgeType = graph.createEdgeType(class_name);
@@ -26,27 +26,27 @@ public class FeatureGroupMappingService {
     }
 
     public void pushDataIntoDatabase() {
-        OrientGraphNoTx graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
-        List<Map<String, String>> featureData = new FirstExample().getData("select * from acl_group_feature_mapping",
+        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        List<Map<String, Object>> featureData = new FirstExample().getData("select * from acl_group_feature_mapping",
                 Constants.FEATUREGROUPMAPPING.toLowerCase());
         createEdge(graphNoTx, Constants.FEATUREGROUPMAPPING);
 
         if (featureData != null) {
-            for (Map<String, String> featureRecord : featureData) {
+            for (Map<String, Object> featureRecord : featureData) {
                 OrientVertex featureVertex = null;
                 OrientVertex featureGroupVertex = null;
                 String permission = null;
-                for (Entry<String, String> entry : featureRecord.entrySet()) {
+                for (Entry<String, Object> entry : featureRecord.entrySet()) {
                     if ("feature_id".equalsIgnoreCase(entry.getKey()))
-                        featureVertex = VertexUtility.getVertex(graphNoTx, entry.getValue(),
+                        featureVertex = VertexUtility.getVertex(graphNoTx, (String)entry.getValue(),
                                 "Feature_id".toLowerCase(),Constants.FEATURE);
                     if ("group_id".equalsIgnoreCase(entry.getKey()))
-                        featureGroupVertex = VertexUtility.getVertex(graphNoTx, entry.getValue(),
+                        featureGroupVertex = VertexUtility.getVertex(graphNoTx, (String)entry.getValue(),
                                 "FeatureGroup_id".toLowerCase(),Constants.FEATURE_GROUP);
                     if ("permission_id".equalsIgnoreCase(entry.getKey()))
-                        permission = Permission.getPermissionValue(Integer.parseInt(entry.getValue()));
+                        permission = Permission.getPermissionValue(Integer.parseInt((String)entry.getValue()));
                 }
-                if(!VertexUtility.isEdgePresent(graphNoTx, featureVertex.getIdentity().toString(), featureGroupVertex.getIdentity().toString())){
+                if(!VertexUtility.isDirectedEdgePresent(graphNoTx, featureVertex.getIdentity().toString(), featureGroupVertex.getIdentity().toString(),"FeatureGroupMapping")){
                     featureGroupVertex.addEdge("FeatureGroupMapping", featureVertex, null, null, "permission", permission);
                 }
             }
@@ -56,7 +56,7 @@ public class FeatureGroupMappingService {
 
     public List<Map<String, String>> printAllEdges() {
         List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
-        OrientGraphNoTx graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
         Iterable<Edge> iterable = graphNoTx.getEdgesOfClass("FeatureGroupMapping");
         Iterator<Edge> iter = iterable.iterator();
         while (iter.hasNext()) {

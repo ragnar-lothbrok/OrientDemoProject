@@ -1,12 +1,12 @@
 package com.home.test;
 
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class TempService {
 
     public void pushDataIntoDatabase() {
-        OrientGraphNoTx graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
         String team_id = "team_25";
         OrientVertex parentVertex = VertexUtility.getVertex(graphNoTx, team_id, "team_id", Constants.Team);
         OrientVertex orientVertex = null;

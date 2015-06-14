@@ -3,19 +3,19 @@ package com.home.test;
 import java.util.List;
 import java.util.Map;
 
-import com.tinkerpop.blueprints.impls.orient.OrientGraphNoTx;
+import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class ResourceService {
 
     public void pushDataIntoDatabase() {
-        OrientGraphNoTx graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
-        List<Map<String, String>> resourceData = new FirstExample().getData("select * from acl_resource_type",
+        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        List<Map<String, Object>> resourceData = new FirstExample().getData("select * from acl_resource_type",
                 Constants.Resource.toLowerCase());
         VertexUtility.createVertex(graphNoTx, Constants.Resource);
         if (resourceData != null) {
-            for (Map<String, String> resource : resourceData) {
-                if (VertexUtility.getVertex(graphNoTx, resource.get("resource_id"), "resource_id", Constants.Resource) != null) {
+            for (Map<String, Object> resource : resourceData) {
+                if (VertexUtility.getVertex(graphNoTx, (String)resource.get("resource_id"), "resource_id", Constants.Resource) != null) {
                     continue;
                 }
                 OrientVertex orientVertex = graphNoTx.addVertex("class:Resource");

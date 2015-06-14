@@ -22,10 +22,10 @@ public class FirstExample {
 	static final String USER = "root";
 	static final String PASS = "root";
 
-	public List<Map<String, String>> getData(String query,String className) {
+	public List<Map<String, Object>> getData(String query,String className) {
 		Connection conn = null;
 		Statement stmt = null;
-		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+		List<Map<String, Object>> list = new ArrayList<Map<String, Object>>();
 		try {
 			// STEP 2: Register JDBC driver
 			Class.forName("com.mysql.jdbc.Driver");
@@ -49,7 +49,7 @@ public class FirstExample {
 			}
 			while (rs.next()) {
 				int count = 1;
-				Map<String, String> dataMap = new LinkedHashMap<String, String>();
+				Map<String, Object> dataMap = new LinkedHashMap<String, Object>();
 				for (String label : labelNames) {
 					dataMap.put(label, rs.getString(count));
 					count++;
