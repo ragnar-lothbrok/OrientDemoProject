@@ -26,7 +26,7 @@ public class FeatureGroupMappingService {
     }
 
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> featureData = new FirstExample().getData("select * from acl_group_feature_mapping",
                 Constants.FEATUREGROUPMAPPING.toLowerCase());
         createEdge(graphNoTx, Constants.FEATUREGROUPMAPPING);
@@ -56,7 +56,7 @@ public class FeatureGroupMappingService {
 
     public List<Map<String, String>> printAllEdges() {
         List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(false);
         Iterable<Edge> iterable = graphNoTx.getEdgesOfClass("FeatureGroupMapping");
         Iterator<Edge> iter = iterable.iterator();
         while (iter.hasNext()) {

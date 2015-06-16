@@ -6,7 +6,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class TempService {
 
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         String team_id = "team_25";
         OrientVertex parentVertex = VertexUtility.getVertex(graphNoTx, team_id, "team_id", Constants.Team);
         OrientVertex orientVertex = null;

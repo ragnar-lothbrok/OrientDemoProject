@@ -13,7 +13,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class UserTeamService {
 
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> userTeamMappingData = new FirstExample()
                 .getData(
                         "select ag.group_type_id,au.id as user_id,au.first_name as first_name,au.last_name as last_name,au.email as email from acl_group_user_mapping agcm inner join acl_group ag on ag.id=agcm.group_id inner join acl_user au on au.id=agcm.user_id",

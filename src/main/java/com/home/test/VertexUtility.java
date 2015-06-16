@@ -175,7 +175,7 @@ public class VertexUtility {
 
     public static List<Map<String, String>> printAllVertex(String className) {
         List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(false);
         long startTime = System.currentTimeMillis();
         Iterable<Vertex> iterable = graphNoTx.getVerticesOfClass(className);
         System.out.println("printAllVertex >> Fetched Time : " + (System.currentTimeMillis() - startTime));

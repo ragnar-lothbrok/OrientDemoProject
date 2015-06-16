@@ -8,12 +8,12 @@ import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterable;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
 
 import com.home.test.Constants;
@@ -73,19 +73,15 @@ public class Neo4JPublisherSiteService {
 
     public static void deleteIndexes(GraphDatabaseService graphDb) {
         long tms = System.currentTimeMillis();
-        int count = 0;
-        Transaction tx = null;
-        try {
-            tx = graphDb.beginTx();
-
-            IndexManager index = graphDb.index();
-            Index<Node> publisherSiteIndexes = index.forNodes("PublisherSite");
-            publisherSiteIndexes.delete();
-        } finally {
+        try (Transaction tx = graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : graphDb.schema().getIndexes(publisherSiteLabel)) {
+                indexDefinition.drop();
+            }
             tx.success();
             tx.close();
         }
-        System.out.println("Deleted node count : " + count + "  Time taken : " + (System.currentTimeMillis() - tms));
+        System.out.println("  Time taken to delete index " + publisherSiteLabel + ": "
+                + (System.currentTimeMillis() - tms));
     }
 
     public static void deleteAllNodes(GraphDatabaseService graphDb) {
@@ -94,15 +90,19 @@ public class Neo4JPublisherSiteService {
         Transaction tx = null;
         try {
             tx = graphDb.beginTx();
-
-            for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodes()) {
-                node.removeLabel(publisherSiteLabel);
-                Iterable<Relationship> allRelationships = node.getRelationships();
-                for (Relationship relationship : allRelationships) {
-                    relationship.delete();
+            ResourceIterable<Node> nodes = GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherSiteLabel);
+            if (nodes != null && nodes.iterator() != null) {
+                try (ResourceIterator<Node> users = nodes.iterator()) {
+                    ArrayList<Node> userNodes = new ArrayList<>();
+                    while (users.hasNext()) {
+                        userNodes.add(users.next());
+                    }
+                    for (Node tempNode : userNodes) {
+                        tempNode.removeLabel(publisherSiteLabel);
+                        tempNode.delete();
+                        count++;
+                    }
                 }
-                node.delete();
-                count++;
             }
         } finally {
             tx.success();
@@ -116,14 +116,16 @@ public class Neo4JPublisherSiteService {
                 .newEmbeddedDatabase("/home/pubmatic/Downloads/neo4j-community-2.2.2/data/Neo4jDB.db");
 
         registerShutdownHook(graphDb);
-        
-        deleteIndexes(graphDb);
 
-        pushDataIntoDatabase(graphDb);
+        fetchAllNodes(graphDb);
+
+        deleteIndexes(graphDb);
 
         fetchAllNodes(graphDb);
 
         deleteAllNodes(graphDb);
+
+        pushDataIntoDatabase(graphDb);
 
         fetchAllNodes(graphDb);
 

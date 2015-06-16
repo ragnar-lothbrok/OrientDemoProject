@@ -8,15 +8,13 @@ import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterable;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
 
-import com.home.neo4j.Neo4JPublisherService.RelTypes;
 import com.home.test.Constants;
 import com.home.test.FirstExample;
 
@@ -25,12 +23,15 @@ public class Neo4JPublisherAdTagService {
 
     public static void pushDataIntoDatabase(GraphDatabaseService graphDb) {
         List<Map<String, Object>> pubAdTagData = new FirstExample().getData(
-                "select id,name,pub_id,site_id from publisher_site_ad limit 100000", Constants.PUBLISHER_AD_TAG.toLowerCase());
+                "select id,name,pub_id,site_id from publisher_site_ad", Constants.PUBLISHER_AD_TAG.toLowerCase());
         long tms = System.currentTimeMillis();
         int count = 0;
 
         Transaction tx1 = graphDb.beginTx();
-        graphDb.schema().indexFor(publisherAdTagLabel).on("adTagId").create();
+        try {
+            graphDb.schema().indexFor(publisherAdTagLabel).on("adTagId").create();
+        } catch (Exception exception) {
+        }
         tx1.success();
         tx1.close();
 
@@ -41,18 +42,6 @@ public class Neo4JPublisherAdTagService {
                 Node adTagNode = graphDb.createNode(publisherAdTagLabel);
                 adTagNode.setProperty("adTagId", pubAdTag.get("publisheradtag_id"));
                 adTagNode.setProperty("name", pubAdTag.get("name"));
-                
-                
-                Node siteNode = graphDb.createNode(DynamicLabel.label(Constants.PUBLISHER_SITE));
-                siteNode.setProperty("siteId", pubAdTag.get("site_id"));
-                
-                siteNode.createRelationshipTo(adTagNode, RelTypes.SITECONTAINS);
-                
-                Node pubNode = graphDb.createNode(DynamicLabel.label(Constants.PUBLISHER));
-                pubNode.setProperty("pubId", pubAdTag.get("pub_id"));
-                
-                pubNode.createRelationshipTo(siteNode, RelTypes.PUBCONAINS);
-                
                 count++;
             }
         }
@@ -61,10 +50,6 @@ public class Neo4JPublisherAdTagService {
         tx2.close();
         System.out.println(count + " created. Time taken : " + (System.currentTimeMillis() - tms));
     }
-    
-    public static enum RelTypes implements RelationshipType {
-        SITECONTAINS,PUBCONAINS
-    }
 
     public static void main(String[] args) {
         GraphDatabaseService graphDb = new GraphDatabaseFactory()
@@ -72,29 +57,30 @@ public class Neo4JPublisherAdTagService {
 
         registerShutdownHook(graphDb);
 
+        fetchAllNodes(graphDb);
+
         deleteIndexes(graphDb);
+
+        fetchAllNodes(graphDb);
+
+        deleteAllNodes(graphDb);
 
         pushDataIntoDatabase(graphDb);
 
-        // deleteAllNodes(graphDb);
         fetchAllNodes(graphDb);
     }
 
     public static void deleteIndexes(GraphDatabaseService graphDb) {
         long tms = System.currentTimeMillis();
-        int count = 0;
-        Transaction tx = null;
-        try {
-            tx = graphDb.beginTx();
-
-            IndexManager index = graphDb.index();
-            Index<Node> publisherAdTagIndexes = index.forNodes("PublisherAdTag");
-            publisherAdTagIndexes.delete();
-        } finally {
+        try (Transaction tx = graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : graphDb.schema().getIndexes(publisherAdTagLabel)) {
+                indexDefinition.drop();
+            }
             tx.success();
             tx.close();
         }
-        System.out.println("Deleted node count : " + count + "  Time taken : " + (System.currentTimeMillis() - tms));
+        System.out.println("Time taken to delete index " + publisherAdTagLabel + ": "
+                + (System.currentTimeMillis() - tms));
     }
 
     public static void deleteAllNodes(GraphDatabaseService graphDb) {
@@ -103,14 +89,19 @@ public class Neo4JPublisherAdTagService {
         int count = 0;
         try {
             tx = graphDb.beginTx();
-            for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherAdTagLabel)) {
-                node.removeLabel(publisherAdTagLabel);
-                Iterable<Relationship> allRelationships = node.getRelationships();
-                for (Relationship relationship : allRelationships) {
-                    relationship.delete();
+            ResourceIterable<Node> nodes = GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherAdTagLabel);
+            if (nodes != null && nodes.iterator() != null) {
+                try (ResourceIterator<Node> users = nodes.iterator()) {
+                    ArrayList<Node> userNodes = new ArrayList<>();
+                    while (users.hasNext()) {
+                        userNodes.add(users.next());
+                    }
+                    for (Node tempNode : userNodes) {
+                        tempNode.removeLabel(publisherAdTagLabel);
+                        tempNode.delete();
+                        count++;
+                    }
                 }
-                node.delete();
-                count++;
             }
         } finally {
             tx.success();

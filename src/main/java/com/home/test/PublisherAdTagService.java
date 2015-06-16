@@ -12,7 +12,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 public class PublisherAdTagService {
     public static void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> pubAdTagData = new FirstExample().getData("select id,name from publisher_site_ad limit 70000",
                 Constants.PUBLISHER_AD_TAG.toLowerCase());
 //        VertexUtility.dropClass(graphNoTx, Constants.PUBLISHER_AD_TAG);
@@ -64,8 +64,7 @@ public class PublisherAdTagService {
 //                    Constants.PUBLISHER_AD_TAG);
 //            VertexUtility.printAllVertex(Constants.PUBLISHER_AD_TAG);
         } finally {
-            if (OrientGraphServiceFactory.getInstance().getGraph() != null)
-                OrientGraphServiceFactory.getInstance().getGraph().shutdown();
+            
         }
     }
 }

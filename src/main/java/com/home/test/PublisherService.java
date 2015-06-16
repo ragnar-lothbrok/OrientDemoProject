@@ -12,7 +12,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 
 public class PublisherService {
     public static void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> pubData = new FirstExample().getData("select id,email from publisher",
                 Constants.PUBLISHER.toLowerCase());
         VertexUtility.dropClass(graphNoTx, Constants.PUBLISHER);

@@ -10,8 +10,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class ACLRoleService {
     
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance()
-                .getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> roles = new FirstExample().getData(
                 "select * from acl_group_type", Constants.ROLE.toLowerCase());
         VertexUtility.createVertex(graphNoTx,Constants.ROLE);

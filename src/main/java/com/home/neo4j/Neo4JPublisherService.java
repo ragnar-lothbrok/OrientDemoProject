@@ -1,5 +1,6 @@
 package com.home.neo4j;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -9,12 +10,12 @@ import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterable;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
 
 import com.home.test.Constants;
@@ -42,7 +43,6 @@ public class Neo4JPublisherService {
                 Node node = graphDb.createNode();
                 node.addLabel(publisherLabel);
                 node.setProperty("publisherId", publisher.get("publisher_id"));
-                node.setProperty("name", publisher.get("email"));
                 node.setProperty("email", publisher.get("email"));
                 count++;
             }
@@ -60,7 +60,7 @@ public class Neo4JPublisherService {
         int count = 0;
         try {
             tx = graphDb.beginTx();
-            for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodes()) {
+            for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherLabel)) {
                 count++;
                 if (node != null && node.getProperty("email") != null)
                     emailSet.add((String) node.getProperty("email"));
@@ -79,15 +79,19 @@ public class Neo4JPublisherService {
         Transaction tx = null;
         try {
             tx = graphDb.beginTx();
-
-            for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodes()) {
-                node.removeLabel(publisherLabel);
-                Iterable<Relationship> allRelationships = node.getRelationships();
-                for (Relationship relationship : allRelationships) {
-                    relationship.delete();
+            ResourceIterable<Node> nodes = GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherLabel);
+            if (nodes != null && nodes.iterator() != null) {
+                try (ResourceIterator<Node> users = nodes.iterator()) {
+                    ArrayList<Node> userNodes = new ArrayList<>();
+                    while (users.hasNext()) {
+                        userNodes.add(users.next());
+                    }
+                    for (Node tempNode : userNodes) {
+                        tempNode.removeLabel(publisherLabel);
+                        tempNode.delete();
+                        count++;
+                    }
                 }
-                node.delete();
-                count++;
             }
         } finally {
             tx.success();
@@ -103,19 +107,16 @@ public class Neo4JPublisherService {
         registerShutdownHook(graphDb);
 
         fetchAllNodes(graphDb);
-        
+
         deleteIndexes(graphDb);
-        
-        fetchAllNodes(graphDb);
-        
-        
+
         deleteAllNodes(graphDb);
 
         pushDataIntoDatabase(graphDb);
-        
+
         fetchAllNodes(graphDb);
 
-        deleteAllNodes(graphDb);
+        // deleteAllNodes(graphDb);
 
     }
 
@@ -132,22 +133,19 @@ public class Neo4JPublisherService {
             }
         });
     }
-    
+
     public static void deleteIndexes(GraphDatabaseService graphDb) {
         long tms = System.currentTimeMillis();
-        int count = 0;
-        Transaction tx = null;
-        try {
-            tx = graphDb.beginTx();
+        try (Transaction tx = graphDb.beginTx()) {
+            for (IndexDefinition indexDefinition : graphDb.schema().getIndexes(publisherLabel)) {
+                // There is only one index
+                indexDefinition.drop();
+            }
 
-            IndexManager index = graphDb.index();
-            Index<Node> publisherSiteIndexes = index.forNodes("Publisher");
-            publisherSiteIndexes.delete();
-        } finally {
             tx.success();
             tx.close();
         }
-        System.out.println("Deleted node count : " + count + "  Time taken : " + (System.currentTimeMillis() - tms));
+        System.out.println("  Time taken to delete index : " + (System.currentTimeMillis() - tms));
     }
 
 }

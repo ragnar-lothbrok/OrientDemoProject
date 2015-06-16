@@ -4,8 +4,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.HashMap;
 
 import com.orientechnologies.common.util.OCallable;
+import com.orientechnologies.orient.core.config.OGlobalConfiguration;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.metadata.schema.OType;
 import com.tinkerpop.blueprints.impls.orient.OrientBaseGraph;
@@ -15,11 +17,16 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class EdgePublisherSiteAdTagService {
 
     public static void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> pubAdTagSiteData = new FirstExample().getData(
-                "select id,name,site_id,pub_id from publisher_site_ad",
+                "select id,name,site_id,pub_id from publisher_site_ad limit 1000",
                 Constants.PUBLISHER_AD_TAG.toLowerCase());
 
+        Map map = new HashMap();
+        OGlobalConfiguration.dumpConfiguration(System.out);
+        map.put(OGlobalConfiguration.DISK_CACHE_SIZE, 7500);
+        OGlobalConfiguration.setConfiguration(map);
+        OGlobalConfiguration.dumpConfiguration(System.out);
         VertexUtility.dropClass(graphNoTx, Constants.PUBLISHER_PUBLISHER_SITE);
         VertexUtility.dropClass(graphNoTx, Constants.PUBLISHER_SITE_AD_TAG);
         createClass(graphNoTx, Constants.PUBLISHER_PUBLISHER_SITE);
@@ -47,14 +54,18 @@ public class EdgePublisherSiteAdTagService {
                         && adTagVertex != null
                         && !VertexUtility.isDirectedEdgePresent(graphNoTx, siteVertex.getIdentity().toString(),
                                 adTagVertex.getIdentity().toString(), Constants.PUBLISHER_SITE_AD_TAG)) {
+                    ((OrientGraph) graphNoTx).begin();
                     insertEdge(graphNoTx, siteVertex, adTagVertex, Constants.PUBLISHER_SITE_AD_TAG);
+                    ((OrientGraph) graphNoTx).commit();
                     count++;
                 }
                 if (siteVertex != null
                         && publisherVertex != null
                         && !VertexUtility.isDirectedEdgePresent(graphNoTx, publisherVertex.getIdentity().toString(),
                                 siteVertex.getIdentity().toString(), Constants.PUBLISHER_PUBLISHER_SITE)) {
+                    ((OrientGraph) graphNoTx).begin();
                     insertEdge(graphNoTx, publisherVertex, siteVertex, Constants.PUBLISHER_PUBLISHER_SITE);
+                    ((OrientGraph) graphNoTx).commit();
                     count++;
                 }
             }

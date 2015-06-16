@@ -9,7 +9,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class ResourceService {
 
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> resourceData = new FirstExample().getData("select * from acl_resource_type",
                 Constants.Resource.toLowerCase());
         VertexUtility.createVertex(graphNoTx, Constants.Resource);

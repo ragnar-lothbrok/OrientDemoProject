@@ -16,7 +16,7 @@ import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 public class FeatureGroupService {
     
     public void pushDataIntoDatabase() {
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(true);
         List<Map<String, Object>> featureData = new FirstExample().getData("select * from acl_group",
                 Constants.FEATURE_GROUP.toLowerCase());
         VertexUtility.createVertex(graphNoTx,Constants.FEATURE_GROUP);
@@ -46,7 +46,7 @@ public class FeatureGroupService {
 
     public List<Map<String, String>> printAllEdges() {
         List<Map<String, String>> dataList = new ArrayList<Map<String, String>>();
-        OrientBaseGraph graphNoTx = OrientGraphServiceFactory.getInstance().getGraph();
+        OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(false);
         Iterable<Edge> iterable = graphNoTx.getEdgesOfClass("contains");
         Iterator<Edge> iter = iterable.iterator();
         while (iter.hasNext()) {
