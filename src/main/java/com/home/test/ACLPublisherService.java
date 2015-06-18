@@ -54,7 +54,7 @@ public class ACLPublisherService {
         return count;
     }
 
-    public static void createClass(OrientBaseGraph graphNoTx) {
+    public static void createClass(final OrientBaseGraph graphNoTx) {
         ((OrientGraph) graphNoTx).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
             public Object call(OrientBaseGraph iArgument) {
                 OClass publisherAdTag = graphNoTx.getRawGraph().getMetadata().getSchema()

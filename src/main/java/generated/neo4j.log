@@ -1,0 +1,20 @@
+Time taken to delete index PublisherAdTag: 178
+254124 Deleted node count. Time taken : 13807
+Connecting to database...
+Creating statement...
+54124 created. Time taken : 4526
+54124 Fetched node count : 54124  Time taken : 84
+
+100000 Fetched node count : 100000  Time taken : 1173
+Time taken to delete index PublisherAdTag: 133
+100000 Deleted node count. Time taken : 5423
+Connecting to database...
+Creating statement...
+100000 created. Time taken : 1701558
+100000 Fetched node count : 100000  Time taken : 179
+
+Edges deleted : 9500 Time Taken : 1493
+
+Connecting to database...
+Creating statement...
+Edges created : 7000 Time Taken : 48364

@@ -34,7 +34,7 @@ public class Neo4JEdgePublisherSiteAdTagService {
 
     public static void pushDataIntoDatabase(GraphDatabaseService graphDb) {
         List<Map<String, Object>> pubAdTagSiteData = new FirstExample().getData(
-                "select id,name,site_id,pub_id from publisher_site_ad limit 5000",
+                "select id,name,site_id,pub_id from publisher_site_ad limit 7000,2500",
                 Constants.PUBLISHER_AD_TAG.toLowerCase());
         int count = 0;
         long tms = System.currentTimeMillis();
@@ -49,7 +49,7 @@ public class Neo4JEdgePublisherSiteAdTagService {
                 Node publisherAdTagNode = getNode(graphDb, publisherAdTagLabel, "adTagId",
                         (String) pubSiteAdTag.get("publisheradtag_id"));
 
-                if (publisherNode != null && publisherSiteNode != null
+               /* if (publisherNode != null && publisherSiteNode != null
                         && !isRelationShipPresent(publisherNode, publisherSiteNode, RelTypes.SITECONTAINS)) {
                     Transaction tx2 = graphDb.beginTx();
                     relationship = publisherNode.createRelationshipTo(publisherSiteNode, RelTypes.SITECONTAINS);
@@ -58,17 +58,17 @@ public class Neo4JEdgePublisherSiteAdTagService {
                     count++;
                     tx2.success();
                     tx2.close();
-                }
+                }*/
 
                 if (publisherAdTagNode != null && publisherSiteNode != null
                         && !isRelationShipPresent(publisherSiteNode, publisherAdTagNode, RelTypes.PUBCONAINS)) {
-                    Transaction tx3 = graphDb.beginTx();
+//                    Transaction tx3 = graphDb.beginTx();
                     publisherSiteNode.createRelationshipTo(publisherAdTagNode, RelTypes.PUBCONAINS);
                     if (relationship != null)
                         relationship.setProperty("name", pubSiteAdTag.get("name"));
                     count++;
-                    tx3.success();
-                    tx3.close();
+//                    tx3.success();
+//                    tx3.close();
                 }
             }
         }
@@ -214,7 +214,7 @@ public class Neo4JEdgePublisherSiteAdTagService {
     public static void main(String[] args) {
         GraphDatabaseService graphDb = new GraphDatabaseFactory()
                 .newEmbeddedDatabase("/home/pubmatic/Downloads/neo4j-community-2.2.2/data/Neo4jDB.db");
-        getAllRelationShips(graphDb);
+//        getAllRelationShips(graphDb);
         deleteAllRelationShips(graphDb);
         pushDataIntoDatabase(graphDb);
     }

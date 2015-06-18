@@ -67,7 +67,7 @@ public class FeatureGroupMappingService {
             if (featureGroupVertex != null) {
                 for (String key : featureGroupVertex.getPropertyKeys()) {
                     if (key.equalsIgnoreCase("featuregroup_id")) {
-                        data.put(key, featureGroupVertex.getProperty(key));
+                        data.put(key, (String) featureGroupVertex.getProperty(key));
                         break;
                     }
                 }
@@ -75,13 +75,13 @@ public class FeatureGroupMappingService {
             if (featureVertex != null) {
                 for (String key : featureVertex.getPropertyKeys()) {
                     if (key.equalsIgnoreCase("feature_id")) {
-                        data.put(key, featureVertex.getProperty(key));
+                        data.put(key, (String) featureVertex.getProperty(key));
                         break;
                     }
                 }
             }
             for (String key : edge.getPropertyKeys()) {
-                data.put(key, edge.getProperty(key));
+                data.put(key, (String) edge.getProperty(key));
             }
             dataList.add(data);
         }

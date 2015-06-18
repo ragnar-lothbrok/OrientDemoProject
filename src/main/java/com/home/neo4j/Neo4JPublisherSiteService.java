@@ -1,6 +1,7 @@
 package com.home.neo4j;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -13,6 +14,7 @@ import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
 
@@ -31,7 +33,8 @@ public class Neo4JPublisherSiteService {
         int count = 0;
 
         Transaction tx1 = graphDb.beginTx();
-        graphDb.schema().indexFor(publisherSiteLabel).on("publishersite_id").create();
+        graphDb.schema().constraintFor(publisherSiteLabel).assertPropertyIsUnique("publishersite_id").create();
+//        graphDb.schema().indexFor(publisherSiteLabel).on("publishersite_id").create();
         tx1.success();
         tx1.close();
 
@@ -84,6 +87,21 @@ public class Neo4JPublisherSiteService {
                 + (System.currentTimeMillis() - tms));
     }
 
+    public static void dropContraints(GraphDatabaseService graphDb) {
+        long tms = System.currentTimeMillis();
+        try (Transaction tx = graphDb.beginTx()) {
+            Iterable<ConstraintDefinition> conIterable = graphDb.schema().getConstraints(publisherSiteLabel);
+            Iterator<ConstraintDefinition> iterator = conIterable.iterator();
+            while (iterator.hasNext()) {
+                iterator.next().drop();
+            }
+            tx.success();
+            tx.close();
+        }
+        System.out.println("  Time taken to delete index " + publisherSiteLabel + ": "
+                + (System.currentTimeMillis() - tms));
+    }
+
     public static void deleteAllNodes(GraphDatabaseService graphDb) {
         long tms = System.currentTimeMillis();
         int count = 0;
@@ -118,8 +136,8 @@ public class Neo4JPublisherSiteService {
         registerShutdownHook(graphDb);
 
         fetchAllNodes(graphDb);
-
-        deleteIndexes(graphDb);
+        
+        dropContraints(graphDb);
 
         fetchAllNodes(graphDb);
 

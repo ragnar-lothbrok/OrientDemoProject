@@ -6,10 +6,14 @@ import org.neo4j.server.WrappingNeoServerBootstrapper;
 import org.neo4j.server.configuration.Configurator;
 import org.neo4j.server.configuration.ServerConfigurator;
 import org.neo4j.shell.ShellSettings;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
 
 public class Neo4JServer {
 
     public static void main(String[] args) {
+        
+        BatchInserter ba = null;
+//        BatchInserters.inserter
         
         GraphDatabaseAPI graphdb = (GraphDatabaseAPI) new GraphDatabaseFactory()
         .newEmbeddedDatabaseBuilder( "/home/pubmatic/Downloads/neo4j-community-2.2.2/data/Neo4jDB.db" )

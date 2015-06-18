@@ -6,6 +6,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.neo4j.graphdb.Transaction;
+
 import com.orientechnologies.common.util.OCallable;
 import com.orientechnologies.orient.core.metadata.schema.OClass;
 import com.orientechnologies.orient.core.record.impl.ODocument;
@@ -18,31 +20,42 @@ import com.tinkerpop.blueprints.impls.orient.OrientGraph;
 import com.tinkerpop.blueprints.impls.orient.OrientVertex;
 
 public class VertexUtility {
-    
-    public static void dropClass(OrientBaseGraph graph, String className) {
+
+    public static void dropClass(final OrientBaseGraph graph, final String className) {
         try {
-            ((OrientGraph) graph).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
-                public Object call(OrientBaseGraph iArgument) {
-                    graph.getRawGraph().getMetadata().getSchema().dropClass(className);
-                    graph.getRawGraph().getMetadata().getSchema().save();
-                    System.out.println("Dropped class : "+className);
-                    return null;
-                }
-            });
+            if (graph instanceof OrientGraph) {
+                ((OrientGraph) graph).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
+                    public Object call(OrientBaseGraph iArgument) {
+                        graph.getRawGraph().getMetadata().getSchema().dropClass(className);
+                        graph.getRawGraph().getMetadata().getSchema().save();
+                        System.out.println("Dropped class : " + className);
+                        return null;
+                    }
+                });
+            } else {
+                graph.getRawGraph().getMetadata().getSchema().dropClass(className);
+                graph.getRawGraph().getMetadata().getSchema().save();
+                System.out.println("Dropped class : " + className);
+            }
         } catch (Exception exception) {
             System.out.println("Exception occured : " + exception.getMessage());
         }
     }
 
-    public static void dropIndex(OrientBaseGraph graph, String index) {
+    public static void dropIndex(final OrientBaseGraph graph, final String index) {
         try {
-            ((OrientGraph) graph).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
-                public Object call(OrientBaseGraph iArgument) {
-                    graph.dropIndex(index);
-                    System.out.println("Dropped  index: "+index);
-                    return null;
-                }
-            });
+            if (graph instanceof OrientGraph) {
+                ((OrientGraph) graph).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
+                    public Object call(OrientBaseGraph iArgument) {
+                        graph.dropIndex(index);
+                        System.out.println("Dropped  index: " + index);
+                        return null;
+                    }
+                });
+            } else {
+                graph.dropIndex(index);
+                System.out.println("Dropped  index: " + index);
+            }
         } catch (Exception exception) {
             System.out.println("Exception occured : " + exception.getMessage());
         }
@@ -67,18 +80,30 @@ public class VertexUtility {
         }
         return false;
     }
-    
-    public static boolean deleteAllVertex(OrientBaseGraph graph, String className){
+
+    public static void deleteAllVertex(OrientBaseGraph graph, String className, String index) {
         try {
-            List<String> params = new ArrayList<String>();
-            String query = "DELETE Vertex "+className;
-            Object obj = graph.getRawGraph().command(new OCommandSQL(query)).execute(params);
-            if (obj != null && ((ArrayList<ODocument>) obj).size() > 0)
-                return true;
+            /*
+             * List<String> params = new ArrayList<String>(); String query =
+             * "DELETE Vertex " + className; Object obj =
+             * graph.getRawGraph().command(new
+             * OCommandSQL(query)).execute(params); if (obj != null &&
+             * ((ArrayList<ODocument>) obj).size() > 0) return true;
+             */
+            long startTime = System.currentTimeMillis();
+            if (graph instanceof OrientGraph) {
+                ((OrientGraph) graph).begin();
+                dropClass(graph, className);
+                dropIndex(graph, index);
+                ((OrientGraph) graph).commit();
+
+            } else {
+                dropClass(graph, className);
+                dropIndex(graph, index);
+            }
+            System.out.println("Vertex Dropped time : " + (System.currentTimeMillis() - startTime) / 1000);
         } catch (Exception exception) {
-            return false;
         }
-        return false;
     }
 
     public static void dropEdge(OrientBaseGraph graph, String edge) {
@@ -141,9 +166,9 @@ public class VertexUtility {
         return vertex;
     }
 
-    public static boolean isDirectedEdgePresent(OrientBaseGraph graph, String vertex1, String vertex2,String className) {
+    public static boolean isDirectedEdgePresent(OrientBaseGraph graph, String vertex1, String vertex2, String className) {
         try {
-            String query = "SELECT * FROM "+className+" WHERE (out = ? AND in = ? )";
+            String query = "SELECT * FROM " + className + " WHERE (out = ? AND in = ? )";
             OSQLSynchQuery<ODocument> sql = new OSQLSynchQuery<ODocument>(query);
             OrientDynaElementIterable orientDynaElementIterable = graph.command(sql).execute(vertex1, vertex2);
             Iterator<Object> iter = orientDynaElementIterable.iterator();
@@ -156,10 +181,11 @@ public class VertexUtility {
         }
         return false;
     }
-    
-    public static boolean isNonDirectedEdgePresent(OrientBaseGraph graph, String vertex1, String vertex2,String className) {
+
+    public static boolean isNonDirectedEdgePresent(OrientBaseGraph graph, String vertex1, String vertex2,
+            String className) {
         try {
-            String query = "SELECT * FROM "+className+" WHERE (out = ? AND in = ? ) OR (out = ? AND in = ? )";
+            String query = "SELECT * FROM " + className + " WHERE (out = ? AND in = ? ) OR (out = ? AND in = ? )";
             OSQLSynchQuery<ODocument> sql = new OSQLSynchQuery<ODocument>(query);
             OrientDynaElementIterable orientDynaElementIterable = graph.command(sql).execute(vertex1, vertex2);
             Iterator<Object> iter = orientDynaElementIterable.iterator();
@@ -178,7 +204,7 @@ public class VertexUtility {
         OrientBaseGraph graphNoTx = OrientGraphConnectionPool.getInstance().getOrientGraph(false);
         long startTime = System.currentTimeMillis();
         Iterable<Vertex> iterable = graphNoTx.getVerticesOfClass(className);
-        System.out.println("printAllVertex >> Fetched Time : " + (System.currentTimeMillis() - startTime));
+        long time = System.currentTimeMillis() - startTime;
         Iterator<Vertex> iter = iterable.iterator();
         while (iter.hasNext()) {
             Map<String, String> data = new LinkedHashMap<String, String>();
@@ -188,7 +214,8 @@ public class VertexUtility {
             }
             dataList.add(data);
         }
-        System.out.println("printAllVertex >>  "+className + " : total read  " + dataList.size());
+        System.out.println("printAllVertex Time >>  " + time + " Class : " + className + " : total read  "
+                + dataList.size());
         return dataList;
     }
 

@@ -17,14 +17,14 @@ public class OrientGraphConnectionPool {
     private OrientGraphConnectionPool() {
 
     }
-    
+
     public int getAvailablePoolSize() {
         if (orientGraphFactory != null) {
             return orientGraphFactory.getAvailableInstancesInPool();
         }
         return 0;
     }
-    
+
     public int getTotalPoolSize() {
         if (orientGraphFactory != null) {
             return orientGraphFactory.getCreatedInstancesInPool();
@@ -38,7 +38,7 @@ public class OrientGraphConnectionPool {
                 if (orientGraphFactory == null) {
                     orientGraphFactory = new OrientGraphFactory(DB_PATH, "admin", "admin");
                     orientGraphFactory.setupPool(MIN_POOL_SIZE, MAX_POOL_SIZE);
-                    //Operations should be in transactions
+                    // Operations should be in transactions
                     orientGraphFactory.setRequireTransaction(true);
                     orientGraphFactory.setAutoStartTx(false);
                 }
@@ -57,5 +57,20 @@ public class OrientGraphConnectionPool {
             }
         }
         return orientGraphServiceFactory;
+    }
+
+    public OrientGraphFactory getOrientGraphFactory() {
+        if (orientGraphFactory == null) {
+            synchronized (OrientGraphConnectionPool.class) {
+                if (orientGraphFactory == null) {
+                    orientGraphFactory = new OrientGraphFactory(DB_PATH, "admin", "admin");
+                    orientGraphFactory.setupPool(MIN_POOL_SIZE, MAX_POOL_SIZE);
+                    // Operations should be in transactions
+                    orientGraphFactory.setRequireTransaction(true);
+                    orientGraphFactory.setAutoStartTx(false);
+                }
+            }
+        }
+        return orientGraphFactory;
     }
 }

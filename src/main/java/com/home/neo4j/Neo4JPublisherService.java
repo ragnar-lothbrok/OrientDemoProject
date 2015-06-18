@@ -2,6 +2,7 @@ package com.home.neo4j;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,6 +16,7 @@ import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
 
@@ -33,7 +35,8 @@ public class Neo4JPublisherService {
         int count = 0;
 
         Transaction tx1 = graphDb.beginTx();
-        graphDb.schema().indexFor(publisherLabel).on("publisher_id").create();
+//        graphDb.schema().indexFor(publisherLabel).on("publisher_id").create();
+        graphDb.schema().constraintFor(publisherLabel).assertPropertyIsUnique("publisher_id").create();
         tx1.success();
         tx1.close();
 
@@ -107,8 +110,8 @@ public class Neo4JPublisherService {
         registerShutdownHook(graphDb);
 
         fetchAllNodes(graphDb);
-
-        deleteIndexes(graphDb);
+        
+        dropContraints(graphDb);
 
         deleteAllNodes(graphDb);
 
@@ -118,6 +121,21 @@ public class Neo4JPublisherService {
 
         // deleteAllNodes(graphDb);
 
+    }
+    
+    public static void dropContraints(GraphDatabaseService graphDb) {
+        long tms = System.currentTimeMillis();
+        try (Transaction tx = graphDb.beginTx()) {
+            Iterable<ConstraintDefinition> conIterable = graphDb.schema().getConstraints(publisherLabel);
+            Iterator<ConstraintDefinition> iterator = conIterable.iterator();
+            while (iterator.hasNext()) {
+                iterator.next().drop();
+            }
+            tx.success();
+            tx.close();
+        }
+        System.out.println("  Time taken to delete constraints " + publisherLabel + ": "
+                + (System.currentTimeMillis() - tms));
     }
 
     public static enum RelTypes implements RelationshipType {

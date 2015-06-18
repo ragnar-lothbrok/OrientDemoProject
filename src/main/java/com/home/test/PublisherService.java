@@ -47,7 +47,7 @@ public class PublisherService {
         return count;
     }
 
-    public static void createClass(OrientBaseGraph graphNoTx) {
+    public static void createClass(final OrientBaseGraph graphNoTx) {
         ((OrientGraph) graphNoTx).executeOutsideTx(new OCallable<Object, OrientBaseGraph>() {
             public Object call(OrientBaseGraph iArgument) {
                 OClass publisherAdTag = graphNoTx.getRawGraph().getMetadata().getSchema()
@@ -63,7 +63,7 @@ public class PublisherService {
     }
 
     public static void main(String[] args) {
-        pushDataIntoDatabase();
+//        pushDataIntoDatabase();
         VertexUtility.printAllVertex(Constants.PUBLISHER);
     }
 }

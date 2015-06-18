@@ -1,6 +1,8 @@
 package com.home.neo4j;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -8,12 +10,16 @@ import org.neo4j.graphdb.DynamicLabel;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.schema.ConstraintDefinition;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.tooling.GlobalGraphOperations;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 import com.home.test.Constants;
 import com.home.test.FirstExample;
@@ -23,13 +29,15 @@ public class Neo4JPublisherAdTagService {
 
     public static void pushDataIntoDatabase(GraphDatabaseService graphDb) {
         List<Map<String, Object>> pubAdTagData = new FirstExample().getData(
-                "select id,name,pub_id,site_id from publisher_site_ad", Constants.PUBLISHER_AD_TAG.toLowerCase());
+                "select id,name,pub_id,site_id from publisher_site_ad limit 200001,255000",
+                Constants.PUBLISHER_AD_TAG.toLowerCase());
         long tms = System.currentTimeMillis();
         int count = 0;
 
         Transaction tx1 = graphDb.beginTx();
         try {
-            graphDb.schema().indexFor(publisherAdTagLabel).on("adTagId").create();
+//             graphDb.schema().indexFor(publisherAdTagLabel).on("adTagId").create();
+//            graphDb.schema().constraintFor(publisherAdTagLabel).assertPropertyIsUnique("adTagId").create();
         } catch (Exception exception) {
         }
         tx1.success();
@@ -39,16 +47,55 @@ public class Neo4JPublisherAdTagService {
 
         if (pubAdTagData.size() > 0) {
             for (Map<String, Object> pubAdTag : pubAdTagData) {
+//                Transaction tx2 = graphDb.beginTx();
                 Node adTagNode = graphDb.createNode(publisherAdTagLabel);
                 adTagNode.setProperty("adTagId", pubAdTag.get("publisheradtag_id"));
                 adTagNode.setProperty("name", pubAdTag.get("name"));
                 count++;
+//                System.out.println(count +" "+(System.currentTimeMillis() - tms));
+//                tx2.success();
+//                tx2.close();
             }
         }
 
-        tx2.success();
-        tx2.close();
+         tx2.success();
+         tx2.close();
         System.out.println(count + " created. Time taken : " + (System.currentTimeMillis() - tms));
+    }
+
+    public static void push() {
+        BatchInserter inserter = null;
+        int count = 0;
+        try {
+            List<Map<String, Object>> pubAdTagData = new FirstExample().getData(
+                    "select id,name,pub_id,site_id from publisher_site_ad limit 100000",
+                    Constants.PUBLISHER_AD_TAG.toLowerCase());
+            long tms = System.currentTimeMillis();
+            Map<String, String> config = new HashMap<String, String>();
+            config.put("cache_type", "none");
+            config.put("use_memory_mapped_buffers", "true");
+            config.put("neostore.nodestore.db.mapped_memory", "200M");
+            config.put("neostore.relationshipstore.db.mapped_memory", "1000M");
+            config.put("neostore.propertystore.db.mapped_memory", "250M");
+            config.put("neostore.propertystore.db.strings.mapped_memory", "250M");
+            inserter = BatchInserters
+                    .inserter("/home/pubmatic/Downloads/neo4j-community-2.2.2/data/Neo4jDB.db", config);
+            inserter.createDeferredSchemaIndex(publisherAdTagLabel).on("adTagId").create();
+            if (pubAdTagData.size() > 0) {
+                for (Map<String, Object> pubAdTag : pubAdTagData) {
+                    Map<String, Object> properties = new HashMap<>();
+                    properties.put("adTagId", pubAdTag.get("publisheradtag_id"));
+                    properties.put("name", pubAdTag.get("name"));
+                    inserter.createNode(properties, publisherAdTagLabel);
+                    count++;
+                }
+            }
+            System.out.println(count + " created. Time taken : " + (System.currentTimeMillis() - tms));
+        } finally {
+            if (inserter != null) {
+                inserter.shutdown();
+            }
+        }
     }
 
     public static void main(String[] args) {
@@ -58,16 +105,18 @@ public class Neo4JPublisherAdTagService {
         registerShutdownHook(graphDb);
 
         fetchAllNodes(graphDb);
-
-        deleteIndexes(graphDb);
-
-        fetchAllNodes(graphDb);
-
-        deleteAllNodes(graphDb);
+        
+//        dropContraints(graphDb);
+//        
+//        deleteIndexes(graphDb);
+//
+//        deleteAllNodes(graphDb);
 
         pushDataIntoDatabase(graphDb);
 
-        fetchAllNodes(graphDb);
+//        fetchAllNodes(graphDb);
+
+        graphDb.shutdown();
     }
 
     public static void deleteIndexes(GraphDatabaseService graphDb) {
@@ -98,14 +147,25 @@ public class Neo4JPublisherAdTagService {
                     }
                     for (Node tempNode : userNodes) {
                         tempNode.removeLabel(publisherAdTagLabel);
+                        Iterable<Relationship> firstRel = tempNode.getRelationships();
                         tempNode.delete();
+                        if (firstRel != null && firstRel.iterator() != null) {
+                            Iterator<Relationship> relIterator = firstRel.iterator();
+                            while (relIterator.hasNext()) {
+                                relIterator.next().delete();
+                            }
+                        }
                         count++;
                     }
                 }
             }
         } finally {
-            tx.success();
-            tx.close();
+            try {
+                tx.success();
+                tx.close();
+            } catch (Exception exception) {
+                exception.printStackTrace();
+            }
         }
         System.out.println(count + " Deleted node count. Time taken : " + (System.currentTimeMillis() - tms));
     }
@@ -119,7 +179,7 @@ public class Neo4JPublisherAdTagService {
             tx = graphDb.beginTx();
             for (final Node node : GlobalGraphOperations.at(graphDb).getAllNodesWithLabel(publisherAdTagLabel)) {
                 count++;
-                if (node != null && node.getProperty("name") != null)
+                if (node != null && node.getPropertyKeys() != null && node.getProperty("name") != null)
                     emailList.add((String) node.getProperty("name"));
             }
         } finally {
@@ -138,6 +198,21 @@ public class Neo4JPublisherAdTagService {
 
             }
         });
+    }
+
+    public static void dropContraints(GraphDatabaseService graphDb) {
+        long tms = System.currentTimeMillis();
+        try (Transaction tx = graphDb.beginTx()) {
+            Iterable<ConstraintDefinition> conIterable = graphDb.schema().getConstraints(publisherAdTagLabel);
+            Iterator<ConstraintDefinition> iterator = conIterable.iterator();
+            while (iterator.hasNext()) {
+                iterator.next().drop();
+            }
+            tx.success();
+            tx.close();
+        }
+        System.out.println("  Time taken to delete constraints " + publisherAdTagLabel + ": "
+                + (System.currentTimeMillis() - tms));
     }
 }
 // https://github.com/orientechnologies/orientdb-docs/wiki/Java-Schema-Api

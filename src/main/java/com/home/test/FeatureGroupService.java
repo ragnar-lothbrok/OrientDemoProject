@@ -57,7 +57,7 @@ public class FeatureGroupService {
             if (roleVertex != null) {
                 for (String key : roleVertex.getPropertyKeys()) {
                     if (key.equalsIgnoreCase("role_id")) {
-                        data.put(key, roleVertex.getProperty(key));
+                        data.put(key, (String) roleVertex.getProperty(key));
                         break;
                     }
                 }
@@ -65,13 +65,13 @@ public class FeatureGroupService {
             if (featureGroupVertex != null) {
                 for (String key : featureGroupVertex.getPropertyKeys()) {
                     if (key.equalsIgnoreCase("featuregroup_id")) {
-                        data.put(key, featureGroupVertex.getProperty(key));
+                        data.put(key, (String) featureGroupVertex.getProperty(key));
                         break;
                     }
                 }
             }
             for (String key : edge.getPropertyKeys()) {
-                data.put(key, edge.getProperty(key));
+                data.put(key, (String) edge.getProperty(key));
             }
             dataList.add(data);
         }
